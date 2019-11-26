@@ -30,7 +30,8 @@ class SysTrayIcon(object):
                  menu_options=None,
                  on_quit=None,
                  default_menu_index=None,
-                 window_class_name=None):
+                 window_class_name=None,
+                 single_lclick_action_index=None):
 
         self._icon = icon
         self._icon_shared = False
@@ -47,6 +48,9 @@ class SysTrayIcon(object):
         window_class_name = window_class_name or ("SysTrayIconPy-%s" % (str(uuid.uuid4())))
 
         self._default_menu_index = (default_menu_index or 0)
+        self._single_lclick_action_index = single_lclick_action_index
+        self._single_lclick_timer = None
+
         self._window_class_name = encode_for_locale(window_class_name)
         self._message_dict = {RegisterWindowMessage("TaskbarCreated"): self._restart,
                               WM_DESTROY: self._destroy,
@@ -217,13 +221,29 @@ class SysTrayIcon(object):
         self._hwnd = None
         self._notify_id = None
 
+    def _perform_single_lclick(self):
+        self._execute_menu_option(self._single_lclick_action_index + SysTrayIcon.FIRST_ID)
+        self._single_lclick_timer = None
+
     def _notify(self, hwnd, msg, wparam, lparam):
+        # Double click is a series of [WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_LBUTTONUP]
+        #  So in order to support both single and double click, the single click will only execute
+        #  after an amount of time greater than GetDoubleClickTime which is the amount of time
+        #  windows allows between clicks for them to be considered a double click.
+        # To achieve this we start a timer on WM_LBUTTONDOWN and cacnel it on WM_LBUTTONDBLCLK
         if lparam == WM_LBUTTONDBLCLK:
+            if self._single_lclick_timer:
+                self._single_lclick_timer.cancel()
+                self._single_lclick_timer = None
             self._execute_menu_option(self._default_menu_index + SysTrayIcon.FIRST_ID)
         elif lparam == WM_RBUTTONUP:
             self._show_menu()
-        elif lparam == WM_LBUTTONUP:
-            pass
+        elif lparam == WM_LBUTTONDOWN:
+            if self._single_lclick_action_index and not self._single_lclick_timer:
+                time = (GetDoubleClickTime() + 50) / 1000  # dividing by 1000 to convert from miliseconds to seconds
+                self._single_lclick_timer = threading.Timer(time, self._perform_single_lclick)
+                self._single_lclick_timer.start()
+
         return True
 
     def _show_menu(self):

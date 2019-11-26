@@ -4,6 +4,7 @@ import locale
 import sys
 
 RegisterWindowMessage = ctypes.windll.user32.RegisterWindowMessageA
+GetDoubleClickTime = ctypes.windll.user32.GetDoubleClickTime
 LoadCursor = ctypes.windll.user32.LoadCursorA
 LoadIcon = ctypes.windll.user32.LoadIconA
 LoadImage = ctypes.windll.user32.LoadImageA
@@ -53,6 +54,7 @@ WM_USER = 1024
 WM_LBUTTONDBLCLK = 515
 WM_RBUTTONUP = 517
 WM_LBUTTONUP = 514
+WM_LBUTTONDOWN = 513
 WM_NULL = 0
 CS_VREDRAW = 1
 CS_HREDRAW = 2
