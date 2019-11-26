@@ -131,6 +131,20 @@ class SysTrayIcon(object):
             self._hover_text = hover_text
         self._refresh_icon()
 
+    def update_item(self, index, name=None, icon=None, callback=None):
+        try:
+            item = list(self._menu_options[index])
+        except IndexError:
+            return
+        if name is not None:
+            item[0] = name
+        if icon is not None:
+            item[1] = icon
+        if callback is not None:
+            item[2] = callback
+        self._menu_options[index] = tuple(item)
+        self._menu = None  # Clear old menu if had one
+
     def _add_ids_to_menu_options(self, menu_options):
         result = []
         for menu_option in menu_options:
